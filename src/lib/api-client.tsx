@@ -608,6 +608,21 @@ export async function getAuditLogsByTaskId(
   return response.data.result;
 }
 
+export async function deleteAuditLog(id: number): Promise<{ message: string }> {
+  const response = await apiClient.delete<{ message: string }>(`/audit/${id}`);
+  if (!response.success) {
+    throw new Error(
+      response.error || response.message || "Failed to delete audit log",
+    );
+  }
+
+  return (
+    response.data ?? {
+      message: response.message || "Audit log deleted successfully",
+    }
+  );
+}
+
 // export async function createTask(body: CreateTaskRequest): Promise<Task> {
 //   const response = await apiClient.post<Task>("/tasks", body);
 //   if (!response.success || !response.data) {
