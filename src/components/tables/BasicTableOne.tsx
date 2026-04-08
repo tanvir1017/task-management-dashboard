@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Table,
   TableBody,
@@ -7,8 +6,8 @@ import {
   TableRow,
 } from "../ui/table";
 
-import Badge from "../ui/badge/Badge";
 import Image from "next/image";
+import Badge from "../ui/badge/Badge";
 
 interface Order {
   id: number;
@@ -124,31 +123,31 @@ export default function BasicTableOne() {
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  User
+                  Task Title
                 </TableCell>
                 <TableCell
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  Project Name
+                  	Assignee
                 </TableCell>
                 <TableCell
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  Team
+                  	Status
                 </TableCell>
                 <TableCell
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  Status
+                  	Created
                 </TableCell>
                 <TableCell
                   isHeader
                   className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                 >
-                  Budget
+          	Actions
                 </TableCell>
               </TableRow>
             </TableHeader>
@@ -157,6 +156,11 @@ export default function BasicTableOne() {
             <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
               {tableData.map((order) => (
                 <TableRow key={order.id}>
+                
+                  <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
+                    {order.projectName}
+                  </TableCell>
+
                   <TableCell className="px-5 py-4 sm:px-6 text-start">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 overflow-hidden rounded-full">
@@ -176,9 +180,6 @@ export default function BasicTableOne() {
                         </span>
                       </div>
                     </div>
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                    {order.projectName}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                     <div className="flex -space-x-2">
@@ -220,6 +221,8 @@ export default function BasicTableOne() {
             </TableBody>
           </Table>
         </div>
+
+        
       </div>
     </div>
   );

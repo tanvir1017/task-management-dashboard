@@ -24,14 +24,23 @@ type NavItem = {
 const navItems: NavItem[] = [
   {
     icon: <GridIcon />,
-    name: "Dashboard",
-    subItems: [
-      { name: "Tasks", path: "/", pro: false },
-      { name: "Audit Logs", path: "/audit-logs", pro: false },
-      { name: "Users", path: "/users", pro: false },
-      { name: "Profiles", path: "/profiles", pro: false }
-
-    ],
+    name: "Tasks",
+    path: "/",
+  },
+  {
+    icon: <TableIcon />,
+    name: "Audit Logs",
+    path: "/audit-logs",
+  },
+  {
+    icon: <BoxCubeIcon />,
+    name: "Users",
+    path: "/users",
+  },
+  {
+    icon: <PlugInIcon />,
+    name: "Profiles",
+    path: "/profiles",
   },
   // {
   //   icon: <CalenderIcon />,
