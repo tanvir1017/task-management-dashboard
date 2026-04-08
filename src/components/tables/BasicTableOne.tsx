@@ -16,8 +16,9 @@ import {
   updateTask,
   updateTaskStatus,
 } from "@/lib/api-client";
-import type { Task } from "@/lib/types";
-import { type FormEvent, useState } from "react";
+import type { Task, TaskStatus } from "@/lib/types";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { type FormEvent, useEffect, useState } from "react";
 import { Toaster, toast } from "sonner";
 import useSWR from "swr";
 import Badge from "../ui/badge/Badge";
@@ -36,23 +37,51 @@ export default function BasicTableOne({
   showCreateModal: controlledShowCreateModal,
   onShowCreateModal,
 }: BasicTableOneProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const allowedStatuses: TaskStatus[] = [
+    "PENDING",
+    "IN_PROGRESS",
+    "COMPLETED",
+    "CANCELLED",
+  ];
+
+  const getValidStatus = (value: string | null): "" | TaskStatus => {
+    if (!value) return "";
+    return allowedStatuses.includes(value as TaskStatus)
+      ? (value as TaskStatus)
+      : "";
+  };
+
+  const getPositiveInt = (value: string | null, fallback: number) => {
+    const parsed = Number(value);
+    if (Number.isNaN(parsed) || parsed < 1) return fallback;
+    return parsed;
+  };
+
+  const initialSearch = searchParams.get("search") ?? "";
+  const initialStatus = getValidStatus(searchParams.get("status"));
+  const initialPage = getPositiveInt(searchParams.get("page"), 1);
+  const initialLimit = getPositiveInt(searchParams.get("limit"), 10);
+
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showHistorySidebar, setShowHistorySidebar] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [internalShowCreateModal, setInternalShowCreateModal] = useState(false);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
   const [isDeletingTask, setIsDeletingTask] = useState(false);
   const [isUpdatingTask, setIsUpdatingTask] = useState(false);
-  const [searchInput, setSearchInput] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(10);
+  const [searchInput, setSearchInput] = useState(initialSearch);
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [statusFilter, setStatusFilter] = useState<"" | TaskStatus>(initialStatus);
+  const [currentPage, setCurrentPage] = useState(initialPage);
+  const [pageSize] = useState(initialLimit);
   const [createForm, setCreateForm] = useState({
     title: "",
     description: "",
-    status: "PENDING",
     assigneeId: "",
   });
   const [editForm, setEditForm] = useState({
@@ -83,6 +112,17 @@ export default function BasicTableOne({
   const { data: users } = useSWR(showCreateModal ? "users" : null, getUsers);
   const tasks = taskData?.result ?? [];
   const totalPages = taskData?.meta?.totalPages ?? 1;
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    if (searchQuery) params.set("search", searchQuery);
+    if (statusFilter) params.set("status", statusFilter);
+    params.set("page", String(currentPage));
+    params.set("limit", String(pageSize));
+
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [searchQuery, statusFilter, currentPage, pageSize, pathname, router]);
 
   const handleEdit = (task: Task) => {
     setSelectedTask(task);
@@ -118,7 +158,6 @@ export default function BasicTableOne({
       setCreateForm({
         title: "",
         description: "",
-        status: "PENDING",
         assigneeId: "",
       });
       toast.success("Task created successfully");
@@ -206,6 +245,7 @@ export default function BasicTableOne({
     setShowEditModal(false);
     setShowDeleteModal(false);
     setShowHistorySidebar(false);
+    setShowDetailsModal(false);
     setShowCreateModal(false);
     setSelectedTask(null);
   };
@@ -223,6 +263,14 @@ export default function BasicTableOne({
       default:
         return "primary";
     }
+  };
+
+  const formatStatusLabel = (status: string) => {
+    return status
+      .toLowerCase()
+      .split("_")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
   };
 
   const formatReadableDateTime = (value: Date | string) => {
@@ -251,9 +299,9 @@ export default function BasicTableOne({
         </div>
       )}
 
-      {(tasksLoading || tasksError) && (
+      {tasksError && (
         <div className="px-5 pt-4 text-sm text-gray-500 dark:text-gray-400">
-          {tasksLoading ? "Loading tasks..." : "Failed to load tasks"}
+          Failed to load tasks
         </div>
       )}
 
@@ -288,10 +336,10 @@ export default function BasicTableOne({
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
               <option value="">All Statuses</option>
-              <option value="PENDING">PENDING</option>
-              <option value="IN_PROGRESS">IN_PROGRESS</option>
-              <option value="COMPLETED">COMPLETED</option>
-              <option value="CANCELLED">CANCELLED</option>
+              <option value="PENDING">Pending</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="CANCELLED">Cancelled</option>
             </select>
           </div>
 
@@ -353,12 +401,66 @@ export default function BasicTableOne({
 
             {/* Table Body */}
             <TableBody className="divide-y divide-gray-100 dark:divide-white/5">
+              {tasksLoading &&
+                Array.from({ length: 6 }).map((_, index) => (
+                  <TableRow key={`skeleton-${index}`}>
+                    <TableCell className="px-4 py-3">
+                      <div className="animate-pulse space-y-2">
+                        <div className="h-4 w-40 rounded bg-gray-200 dark:bg-gray-700" />
+                        <div className="h-3 w-64 rounded bg-gray-100 dark:bg-gray-800" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <div className="flex items-center gap-3 animate-pulse">
+                        <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700" />
+                        <div className="space-y-2">
+                          <div className="h-3 w-24 rounded bg-gray-200 dark:bg-gray-700" />
+                          <div className="h-3 w-32 rounded bg-gray-100 dark:bg-gray-800" />
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <div className="flex items-center gap-3 animate-pulse">
+                        <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700" />
+                        <div className="space-y-2">
+                          <div className="h-3 w-24 rounded bg-gray-200 dark:bg-gray-700" />
+                          <div className="h-3 w-32 rounded bg-gray-100 dark:bg-gray-800" />
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <div className="h-6 w-24 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <div className="h-4 w-48 rounded bg-gray-200 dark:bg-gray-700 animate-pulse" />
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <div className="flex flex-wrap gap-2 animate-pulse">
+                        <div className="h-9 w-16 rounded-lg bg-gray-200 dark:bg-gray-700" />
+                        <div className="h-9 w-18 rounded-lg bg-gray-200 dark:bg-gray-700" />
+                        <div className="h-9 w-18 rounded-lg bg-gray-200 dark:bg-gray-700" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+
               {tasks.map((task) => (
-                <TableRow key={task.id}>
+                <TableRow
+                  key={task.id}
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-white/3"
+                  onClick={() => {
+                    setSelectedTask(task);
+                    setShowDetailsModal(true);
+                  }}
+                >
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                     <div>
                       <div className="font-medium text-gray-800 dark:text-white/90">{task.title}</div>
-                      {task.description && <div className="text-xs text-gray-500">{task.description}</div>}
+                      {task.description && (
+                        <div className="max-w-[260px] truncate text-xs text-gray-500">
+                          {task.description}
+                        </div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
@@ -393,7 +495,7 @@ export default function BasicTableOne({
                   </TableCell>
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                     <Badge size="sm" color={getStatusColor(task.status)}>
-                      {task.status.replace('_', ' ')}
+                      {formatStatusLabel(task.status)}
                     </Badge>
                   </TableCell>
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400 whitespace-nowrap">
@@ -403,21 +505,30 @@ export default function BasicTableOne({
                     <div className="flex flex-wrap gap-2">
                       <Button
                         size="sm"
-                        onClick={() => handleEdit(task)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(task);
+                        }}
                         className="bg-blue-500 hover:bg-blue-600"
                       >
                         Edit
                       </Button>
                       <Button
                         size="sm"
-                        onClick={() => handleDelete(task)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(task);
+                        }}
                         className="bg-red-500 hover:bg-red-600"
                       >
                         Delete
                       </Button>
                       <Button
                         size="sm"
-                        onClick={() => handleHistory(task)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleHistory(task);
+                        }}
                         className="bg-gray-600 hover:bg-gray-700"
                       >
                         History
@@ -446,13 +557,44 @@ export default function BasicTableOne({
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Page {currentPage} of {totalPages}
           </p>
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
+          {tasksLoading ? (
+            <div className="h-10 w-64 rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse" />
+          ) : (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
+          )}
         </div>
       </div>
+
+      <Modal isOpen={showDetailsModal} onClose={closeModals} className="mx-4 max-w-2xl">
+        <div className="p-6">
+          <h2 className="mb-4 text-lg font-semibold">Task Details</h2>
+          {selectedTask && (
+            <div className="space-y-4">
+              <div>
+                <p className="mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Title</p>
+                <p className="text-sm text-gray-900 dark:text-white">{selectedTask.title}</p>
+              </div>
+
+              <div>
+                <p className="mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Description</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {selectedTask.description || "No description provided"}
+                </p>
+              </div>
+
+              <div className="flex justify-end">
+                <Button type="button" variant="outline" onClick={closeModals}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </Modal>
 
       {/* Edit Modal */}
       <Modal isOpen={showEditModal} onClose={closeModals} className="mx-4 max-w-2xl">
@@ -486,10 +628,10 @@ export default function BasicTableOne({
                   onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 >
-                  <option value="PENDING">PENDING</option>
-                  <option value="IN_PROGRESS">IN_PROGRESS</option>
-                  <option value="COMPLETED">COMPLETED</option>
-                  <option value="CANCELLED">CANCELLED</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="CANCELLED">Cancelled</option>
                 </select>
               </div>
               <div className="flex justify-end gap-2">
@@ -577,19 +719,6 @@ export default function BasicTableOne({
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 rows={3}
               />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Status</label>
-              <select
-                value={createForm.status}
-                onChange={(e) => setCreateForm({ ...createForm, status: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              >
-                <option value="PENDING">PENDING</option>
-                <option value="IN_PROGRESS">IN_PROGRESS</option>
-                <option value="COMPLETED">COMPLETED</option>
-                <option value="CANCELLED">CANCELLED</option>
-              </select>
             </div>
             <div className="mb-4">
               <label className="block text-sm font-medium mb-2">Assignee</label>
