@@ -38,13 +38,13 @@ export function ProtectedRoute({
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push("/login");
+      router.push("/signin");
       return;
     }
 
     if (allowedRoles && isAuthenticated && user) {
       if (!isRoleAllowed(user.role, allowedRoles)) {
-        router.push("/login");
+        router.push("/signin");
         return;
       }
     }
