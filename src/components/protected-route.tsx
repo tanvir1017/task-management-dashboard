@@ -1,6 +1,6 @@
 "use client";
 
-
+import LoadingScreen from "@/components/common/LoadingScreen";
 import { useAuth, UserRole } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -53,11 +53,7 @@ export function ProtectedRoute({
   }, [isAuthenticated, isLoading, user, allowedRoles, router]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-600">Loading...</div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (!isAuthenticated) {

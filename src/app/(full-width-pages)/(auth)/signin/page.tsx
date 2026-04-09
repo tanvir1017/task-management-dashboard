@@ -1,6 +1,7 @@
 "use client";
 
 import SignInForm from "@/components/auth/SignInForm";
+import LoadingScreen from "@/components/common/LoadingScreen";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -16,11 +17,7 @@ export default function SignIn() {
   }, [isAuthenticated, isLoading, router]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-600">Loading...</div>
-      </div>
-    );
+    return <LoadingScreen variant="auth" />;
   }
 
   if (isAuthenticated) {
