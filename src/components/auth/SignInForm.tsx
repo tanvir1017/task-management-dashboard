@@ -8,6 +8,19 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 
+const DEMO_ACCOUNTS = {
+  admin: {
+    email: "admin@example.com",
+    password: "123456",
+    label: "Sign in as Admin",
+  },
+  user: {
+    email: "newuser@example.com",
+    password: "123456",
+    label: "Sign in as User",
+  },
+} as const;
+
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -16,18 +29,31 @@ export default function SignInForm() {
   const { login, isLoading } = useAuth();
   const router = useRouter();
 
+  const signInAndRedirect = async (nextEmail: string, nextPassword: string) => {
+    setError("");
+    await login(nextEmail, nextPassword);
+    router.push("/");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log("hello")
     e.preventDefault();
   
     setError("");
     try {
-      await login(email, password);
-      router.push("/");
+      await signInAndRedirect(email, password);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     }
   };
+
+  const handleQuickSignIn = async (role: keyof typeof DEMO_ACCOUNTS) => {
+    try {
+      await signInAndRedirect(DEMO_ACCOUNTS[role].email, DEMO_ACCOUNTS[role].password);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed");
+    }
+  };
+
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full">
       <div className="w-full max-w-md sm:pt-10 mx-auto mb-5">
@@ -55,6 +81,27 @@ export default function SignInForm() {
                 </span>
               </div>
             </div>
+
+            <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickSignIn("admin")}
+                disabled={isLoading}
+              >
+                {isLoading ? "Signing in..." : DEMO_ACCOUNTS.admin.label}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => handleQuickSignIn("user")}
+                disabled={isLoading}
+              >
+                {isLoading ? "Signing in..." : DEMO_ACCOUNTS.user.label}
+              </Button>
+            </div>
+
             <form onSubmit={handleSubmit}>
               <div className="space-y-6">
                 <div>
@@ -66,7 +113,6 @@ export default function SignInForm() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    required
                   />
                 </div>
                 <div>
@@ -79,16 +125,19 @@ export default function SignInForm() {
                       placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      required
                     />
                     <span
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
                     >
                       {showPassword ? (
-                        <EyeIcon className="fill-gray-500 dark:fill-gray-400" />
+                        <span className="fill-gray-500 dark:fill-gray-400">
+                          <EyeIcon />
+                        </span>
                       ) : (
-                        <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400" />
+                        <span className="fill-gray-500 dark:fill-gray-400">
+                          <EyeCloseIcon />
+                        </span>
                       )}
                     </span>
                   </div>
