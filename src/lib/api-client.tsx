@@ -94,8 +94,7 @@ class ApiClient {
   private timeout: number = 10000;
 
   constructor(
-    baseUrl: string = process.env.NEXT_PUBLIC_API_URL ||
-      "http://localhost:5000/api/v1",
+    baseUrl: string = process.env.NEXT_PUBLIC_API_URL! 
   ) {
     this.baseUrl = baseUrl;
   }
