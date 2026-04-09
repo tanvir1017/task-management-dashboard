@@ -88,9 +88,10 @@ export default function BasicTableOne({
   const [editForm, setEditForm] = useState({
     title: "",
     description: "",
-    status: "PENDING",
+    status: "PENDING" as TaskStatus,
   });
   const { user } = useAuth();
+  const canManageAllTasks = user?.role === "ADMIN" || user?.role === "SYSTEM_ADMIN";
   const showCreateModal = controlledShowCreateModal ?? internalShowCreateModal;
   const setShowCreateModal = onShowCreateModal ?? setInternalShowCreateModal;
 
@@ -221,17 +222,19 @@ export default function BasicTableOne({
     }
   };
 
-  const handleUpdateTask = async (e: FormEvent) => {
+  const handleUpdateTaskStatus = async (e: FormEvent) => {
     e.preventDefault();
 
     if (!selectedTask) return;
 
     setIsUpdatingTask(true);
     try {
-      await updateTask(selectedTask.id, {
-        title: editForm.title,
-        description: editForm.description || undefined,
-      });
+      if (canManageAllTasks) {
+        await updateTask(selectedTask.id, {
+          title: editForm.title,
+          description: editForm.description || undefined,
+        });
+      }
 
       if (selectedTask.status !== editForm.status) {
         await updateTaskStatus(selectedTask.id, {
@@ -590,28 +593,32 @@ export default function BasicTableOne({
                         }}
                         className="bg-blue-500 hover:bg-blue-600"
                       >
-                        Edit
+                        {canManageAllTasks ? "Edit" : "Change Status"}
                       </Button>
-                      <Button
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(task);
-                        }}
-                        className="bg-red-500 hover:bg-red-600"
-                      >
-                        Delete
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleHistory(task);
-                        }}
-                        className="bg-gray-600 hover:bg-gray-700"
-                      >
-                        History
-                      </Button>
+                      {canManageAllTasks && (
+                        <>
+                          <Button
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(task);
+                            }}
+                            className="bg-red-500 hover:bg-red-600"
+                          >
+                            Delete
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleHistory(task);
+                            }}
+                            className="bg-gray-600 hover:bg-gray-700"
+                          >
+                            History
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -678,33 +685,39 @@ export default function BasicTableOne({
       {/* Edit Modal */}
       <Modal isOpen={showEditModal} onClose={closeModals} className="mx-4 max-w-2xl">
         <div className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Edit Task</h2>
+          <h2 className="text-lg font-semibold mb-4">
+            {canManageAllTasks ? "Edit Task" : "Update Task Status"}
+          </h2>
           {selectedTask && (
-            <form onSubmit={handleUpdateTask}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">Title</label>
-                <input
-                  type="text"
-                  value={editForm.title}
-                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">Description</label>
-                <textarea
-                  value={editForm.description}
-                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                  rows={3}
-                />
-              </div>
+            <form onSubmit={handleUpdateTaskStatus}>
+              {canManageAllTasks && (
+                <>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-2">Title</label>
+                    <input
+                      type="text"
+                      value={editForm.title}
+                      onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                      required
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-2">Description</label>
+                    <textarea
+                      value={editForm.description}
+                      onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                      rows={3}
+                    />
+                  </div>
+                </>
+              )}
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-2">Status</label>
                 <select
                   value={editForm.status}
-                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value as TaskStatus })}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 >
                   <option value="PENDING">Pending</option>
