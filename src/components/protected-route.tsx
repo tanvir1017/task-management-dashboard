@@ -10,7 +10,7 @@ interface ProtectedRouteProps {
   allowedRoles?: UserRole[];
 }
 
-function isRoleAllowed(userRole: UserRole, allowedRoles: UserRole[]): boolean {
+export function isRoleAllowed(userRole: UserRole, allowedRoles: UserRole[]): boolean {
   const isAllowed = allowedRoles.some(
     (role) => role.toUpperCase() === userRole.toUpperCase(),
   );
@@ -25,6 +25,8 @@ function isRoleAllowed(userRole: UserRole, allowedRoles: UserRole[]): boolean {
       isAllowed,
     );
   }
+
+  
 
   return isAllowed;
 }

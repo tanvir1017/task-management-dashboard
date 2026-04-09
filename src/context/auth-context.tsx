@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userFromToken = extractUserFromToken(token, email);
 
       if (typeof window !== "undefined") {
-        console.log("[Auth Debug] User logged in:", userFromToken);
+        // console.log("[Auth Debug] User logged in:", userFromToken);
       }
 
       localStorage.setItem("user", JSON.stringify(userFromToken));

@@ -1,4 +1,6 @@
 "use client";
+import { useAuth } from "@/context/auth-context";
+import { UserRole } from "@/lib/types";
 import { FileStackIcon } from "@/svg/file-stack";
 import { HistoryIcon } from "@/svg/history";
 import { UsersIcon } from "@/svg/users";
@@ -8,11 +10,8 @@ import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useSidebar } from "../context/SidebarContext";
 import {
-  BoxCubeIcon,
   ChevronDownIcon,
-  HorizontaLDots,
-  PieChartIcon,
-  PlugInIcon
+  HorizontaLDots
 } from "../icons/index";
 
 type NavItem = {
@@ -20,9 +19,10 @@ type NavItem = {
   icon: React.ReactNode;
   path?: string;
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
+  roles?: UserRole[];
 };
 
-const navItems: NavItem[] = [
+const ALL_NAV_ITEMS: NavItem[] = [
   {
     icon: <FileStackIcon />,
     name: "Tasks",
@@ -32,49 +32,36 @@ const navItems: NavItem[] = [
     icon: <HistoryIcon />,
     name: "Audit Logs",
     path: "/audit-logs",
+    roles: ["ADMIN", "SYSTEM_ADMIN"],
   },
   {
     icon: <UsersIcon />,
     name: "Users",
     path: "/users",
+    roles: ["ADMIN", "SYSTEM_ADMIN"],
   },
-  
 ];
 
-const othersItems: NavItem[] = [
-  {
-    icon: <PieChartIcon />,
-    name: "Charts",
-    subItems: [
-      { name: "Line Chart", path: "/line-chart", pro: false },
-      { name: "Bar Chart", path: "/bar-chart", pro: false },
-    ],
-  },
-  {
-    icon: <BoxCubeIcon />,
-    name: "UI Elements",
-    subItems: [
-      { name: "Alerts", path: "/alerts", pro: false },
-      { name: "Avatar", path: "/avatars", pro: false },
-      { name: "Badge", path: "/badge", pro: false },
-      { name: "Buttons", path: "/buttons", pro: false },
-      { name: "Images", path: "/images", pro: false },
-      { name: "Videos", path: "/videos", pro: false },
-    ],
-  },
-  {
-    icon: <PlugInIcon />,
-    name: "Authentication",
-    subItems: [
-      { name: "Sign In", path: "/signin", pro: false },
-      { name: "Sign Up", path: "/signup", pro: false },
-    ],
-  },
-];
+let navItems: NavItem[] = [];
+
+
+const getNavItemsByRole = (userRole: UserRole | undefined): NavItem[] => {
+  if (!userRole) return [];
+  return ALL_NAV_ITEMS.filter(
+    (item) => !item.roles || item.roles.includes(userRole)
+  );
+};
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  
   const pathname = usePathname();
+  
+  const { isAuthenticated, user } = useAuth()
+
+  if (isAuthenticated && user) {
+    navItems = getNavItemsByRole(user.role);
+  }
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -218,7 +205,7 @@ const AppSidebar: React.FC = () => {
     // Check if the current path matches any submenu item
     let submenuMatched = false;
     ["main", "others"].forEach((menuType) => {
-      const items = menuType === "main" ? navItems : othersItems;
+      const items = menuType === "main" ? navItems : [];
       items.forEach((nav, index) => {
         if (nav.subItems) {
           nav.subItems.forEach((subItem) => {
@@ -334,25 +321,10 @@ const AppSidebar: React.FC = () => {
               {renderMenuItems(navItems, "main")}
             </div>
 
-            {/* <div className="">
-              <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                  !isExpanded && !isHovered
-                    ? "lg:justify-center"
-                    : "justify-start"
-                }`}
-              >
-                {isExpanded || isHovered || isMobileOpen ? (
-                  "Others"
-                ) : (
-                  <HorizontaLDots />
-                )}
-              </h2>
-              {renderMenuItems(othersItems, "others")}
-            </div> */}
+          
           </div>
         </nav>
-        {/* {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null} */}
+      
       </div>
     </aside>
   );
